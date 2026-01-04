@@ -1,664 +1,348 @@
 package com.example;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.Optional;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-import javafx.collections.FXCollections;
+import static javafx.collections.FXCollections.observableArrayList;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Parent;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.PieChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonBar;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.DatePicker;
-import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
-import javafx.scene.control.TabPane;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 public class BusinessDashboard {
-    private ObservableList<Business> businesses = FXCollections.observableArrayList();
-    private ObservableList<Transaction> transactions = FXCollections.observableArrayList();
-    private TableView<Business> businessTable;
-    private TableView<Transaction> transactionTable;
-    private Label totalProfitLabel;
-    private Label totalRevenueLabel;
-    private Label totalExpensesLabel;
-    private BarChart<String, Number> businessChart;
-    private PieChart expenseChart;
+    private static int year = 0;
+    // money
+    private final List<DataPoint> moneyHistory = new ArrayList<>();
+    public static double currentMoney = 10000.0;
+    public static double currentGold = 0.0;
+    public static double currentAstronomicalBucks = 0.0;
+    private LineChart<Number, Number> moneyPriceChart;
+    // gold
+    private static final List<DataPoint> goldPriceHistory = new ArrayList<>();
+    private static final Random goldRandom = new Random();
+    private static double lastGoldPrice = 300.0;
+    private static LineChart<Number, Number> goldPriceChart;
+    // astronomical bucks
+    private static final List<DataPoint> astronomicalBuckHistory = new ArrayList<>();
+    private static final Random astronomicalBuckRandom = new Random();
+    private static double lastAstronomicalBuckPrice = 10000.0;
+    private static LineChart<Number, Number> astronomicalBuckPriceChart;
+    // businesses and transactions
+    private static ObservableList<BusinessesTab.Organization> organization = observableArrayList();
+    private static BarChart<String, Number> businessChart;
+    private static PieChart expenseChart;
 
-    public Parent create_BusinessDashboard() {
-        BorderPane borderPane = new BorderPane();
-        borderPane.setPadding(new Insets(10));
-        VBox headerVBox = createHeader();
-        borderPane.setTop(headerVBox);
-        TabPane tabPane = new TabPane();
-        tabPane.getTabs().addAll(
-            createDashboardTab(),
-            createBusinessesTab(),
-            createTransactionsTab(),
-            createReportsTab()
-        );
-        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        borderPane.setCenter(tabPane);
-        return borderPane;
+    public static void updateAllCharts() {
+        updateGoldPriceChart(BusinessApp.startYear, BusinessApp.endYear);
+        updateAstronomicalBuckChart(BusinessApp.startYear, BusinessApp.endYear);
     }
 
-    private VBox createHeader() {
-        VBox header = new VBox(10);
-        header.setStyle("-fx-background-color: #2c3e50; -fx-padding: 15;");
-
-        Label title = new Label("Multi-Business Management System");
-        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: white;");
-        
-        HBox metrics = new HBox(30);
-        metrics.setAlignment(Pos.CENTER);
-        
-        totalRevenueLabel = createMetricLabel("Total Revenue", "$0");
-        totalExpensesLabel = createMetricLabel("Total Expenses", "$0");
-        totalProfitLabel = createMetricLabel("Total Profit", "$0");
-        
-        metrics.getChildren().addAll(totalRevenueLabel, totalExpensesLabel, totalProfitLabel);
-        header.getChildren().addAll(title, metrics);
-        
-        updateMetrics();
-        return header;
+    public static void addData(String name, String manager, boolean locked, double organizationValue, double organizationOutputTime, double organizationCurrentTime,double revenueOutput, double expensesOutput, double upgradeCost, double qualityCost) {
+        BusinessesTab.Organization b1 = new BusinessesTab.Organization(name, manager, locked, organizationValue, organizationOutputTime, organizationCurrentTime,revenueOutput, expensesOutput, upgradeCost, qualityCost);
+        organization.add(b1);
     }
 
-    private Label createMetricLabel(String title, String value) {
-        VBox box = new VBox(5);
-        box.setAlignment(Pos.CENTER);
-        Label titleLabel = new Label(title);
-        titleLabel.setStyle("-fx-text-fill: #ecf0f1; -fx-font-size: 12px;");
-        Label valueLabel = new Label(value);
-        valueLabel.setStyle("-fx-text-fill: #3498db; -fx-font-size: 20px; -fx-font-weight: bold;");
-        box.getChildren().addAll(titleLabel, valueLabel);
-        return valueLabel;
-    }
-
-    private Tab createDashboardTab() {
+    public static Tab createDashboardTab() {
         Tab tab = new Tab("Dashboard");
-        
         VBox content = new VBox(15);
         content.setPadding(new Insets(15));
-        
-        // Business Performance Chart
-        CategoryAxis xAxis = new CategoryAxis();
-        NumberAxis yAxis = new NumberAxis();
-        businessChart = new BarChart<>(xAxis, yAxis);
-        businessChart.setTitle("Business Profit Comparison");
-        businessChart.setPrefHeight(300);
-        updateBusinessChart();
-        
-        // Expense Distribution Chart
-        expenseChart = new PieChart();
-        expenseChart.setTitle("Expense Distribution by Business");
-        expenseChart.setPrefHeight(300);
-        updateExpenseChart();
-        
-        content.getChildren().addAll(businessChart, expenseChart);
-        
+        // Business Summary Section
+        HBox BusinessSection = createBusinessSection();
+        // Gold Price Analysis Section
+        HBox sectionBox = new HBox(15);
+        VBox goldSection = createGoldPriceSection();
+        VBox astronomicalBuckSection = createAstronomicalBuckSection();
+        sectionBox.getChildren().addAll(goldSection, astronomicalBuckSection);
+        // content
+        content.getChildren().addAll(BusinessSection,sectionBox);
         ScrollPane scroll = new ScrollPane(content);
         scroll.setFitToWidth(true);
         tab.setContent(scroll);
         return tab;
     }
 
-    private Tab createBusinessesTab() {
-        Tab tab = new Tab("Businesses");
-        
-        VBox content = new VBox(10);
-        content.setPadding(new Insets(15));
-        
-        // Toolbar
-        HBox toolbar = new HBox(10);
-        Button addBtn = new Button("Add Business");
-        addBtn.setOnAction(e -> showAddBusinessDialog());
-        Button editBtn = new Button("Edit Business");
-        editBtn.setOnAction(e -> editSelectedBusiness());
-        Button deleteBtn = new Button("Delete Business");
-        deleteBtn.setOnAction(e -> deleteSelectedBusiness());
-        toolbar.getChildren().addAll(addBtn, editBtn, deleteBtn);
-        
-        // Business Table
-        businessTable = new TableView<>();
-        businessTable.setItems(businesses);
-        
-        TableColumn<Business, String> nameCol = new TableColumn<>("Business Name");
-        nameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
-        nameCol.setPrefWidth(200);
-        
-        TableColumn<Business, String> typeCol = new TableColumn<>("Type");
-        typeCol.setCellValueFactory(new PropertyValueFactory<>("type"));
-        typeCol.setPrefWidth(150);
-        
-        TableColumn<Business, String> locationCol = new TableColumn<>("Location");
-        locationCol.setCellValueFactory(new PropertyValueFactory<>("location"));
-        locationCol.setPrefWidth(150);
-        
-        TableColumn<Business, Double> revenueCol = new TableColumn<>("Revenue");
-        revenueCol.setCellValueFactory(new PropertyValueFactory<>("revenue"));
-        revenueCol.setPrefWidth(120);
-        
-        TableColumn<Business, Double> expensesCol = new TableColumn<>("Expenses");
-        expensesCol.setCellValueFactory(new PropertyValueFactory<>("expenses"));
-        expensesCol.setPrefWidth(120);
-        
-        TableColumn<Business, Double> profitCol = new TableColumn<>("Profit");
-        profitCol.setCellValueFactory(new PropertyValueFactory<>("profit"));
-        profitCol.setPrefWidth(120);
-        
-        businessTable.getColumns().addAll(nameCol, typeCol, locationCol, revenueCol, expensesCol, profitCol);
-        
-        content.getChildren().addAll(toolbar, businessTable);
-        tab.setContent(content);
-        return tab;
+    private static HBox createBusinessSection() {
+        HBox section = new HBox(10);
+        section.setPadding(new Insets(10));
+        section.setStyle("-fx-border-color: #bdc3c7; -fx-border-width: 1; -fx-border-radius: 5; -fx-background-color: #ecf0f1; -fx-background-radius: 5;");
+        // Business Performance Chart
+        CategoryAxis xAxis = new CategoryAxis();
+        NumberAxis yAxis = new NumberAxis();
+        businessChart = new BarChart<>(xAxis, yAxis);
+        businessChart.setTitle("Business Profit Comparison");
+        businessChart.setPrefHeight(300);
+        // Expense Distribution Chart
+        expenseChart = new PieChart();
+        expenseChart.setTitle("Expense Distribution by Business");
+        expenseChart.setPrefHeight(300);
+        section.getChildren().addAll(businessChart, expenseChart);
+        updateBusinessChart();
+        updateExpenseChart();
+        return section;
     }
 
-    private Tab createTransactionsTab() {
-        Tab tab = new Tab("Transactions");
-        
-        VBox content = new VBox(10);
-        content.setPadding(new Insets(15));
-        
-        // Toolbar
-        HBox toolbar = new HBox(10);
-        Button addBtn = new Button("Add Transaction");
-        addBtn.setOnAction(e -> showAddTransactionDialog());
-        Button deleteBtn = new Button("Delete Transaction");
-        deleteBtn.setOnAction(e -> deleteSelectedTransaction());
-        toolbar.getChildren().addAll(addBtn, deleteBtn);
-        
-        // Transaction Table
-        transactionTable = new TableView<>();
-        transactionTable.setItems(transactions);
-        
-        TableColumn<Transaction, String> dateCol = new TableColumn<>("Date");
-        dateCol.setCellValueFactory(new PropertyValueFactory<>("date"));
-        dateCol.setPrefWidth(120);
-        
-        TableColumn<Transaction, String> businessCol = new TableColumn<>("Business");
-        businessCol.setCellValueFactory(new PropertyValueFactory<>("businessName"));
-        businessCol.setPrefWidth(200);
-        
-        TableColumn<Transaction, String> typeCol = new TableColumn<>("Type");
-        typeCol.setCellValueFactory(new PropertyValueFactory<>("type"));
-        typeCol.setPrefWidth(100);
-        
-        TableColumn<Transaction, Double> amountCol = new TableColumn<>("Amount");
-        amountCol.setCellValueFactory(new PropertyValueFactory<>("amount"));
-        amountCol.setPrefWidth(120);
-        
-        TableColumn<Transaction, String> categoryCol = new TableColumn<>("Category");
-        categoryCol.setCellValueFactory(new PropertyValueFactory<>("category"));
-        categoryCol.setPrefWidth(150);
-        
-        TableColumn<Transaction, String> descCol = new TableColumn<>("Description");
-        descCol.setCellValueFactory(new PropertyValueFactory<>("description"));
-        descCol.setPrefWidth(250);
-        
-        transactionTable.getColumns().addAll(dateCol, businessCol, typeCol, amountCol, categoryCol, descCol);
-        
-        content.getChildren().addAll(toolbar, transactionTable);
-        tab.setContent(content);
-        return tab;
-    }
-
-    private Tab createReportsTab() {
-        Tab tab = new Tab("Reports");
-        
-        VBox content = new VBox(15);
-        content.setPadding(new Insets(15));
-        
-        Label title = new Label("Business Performance Summary");
-        title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-        
-        TextArea reportArea = new TextArea();
-        reportArea.setEditable(false);
-        reportArea.setPrefRowCount(20);
-        
-        Button generateBtn = new Button("Generate Report");
-        generateBtn.setOnAction(e -> {
-            reportArea.setText(generateReport());
-        });
-        
-        content.getChildren().addAll(title, generateBtn, reportArea);
-        tab.setContent(content);
-        return tab;
-    }
-
-    private void showAddBusinessDialog() {
-        Dialog<Business> dialog = new Dialog<>();
-        dialog.setTitle("Add New Business");
-        dialog.setHeaderText("Enter business details");
-        
-        ButtonType addButtonType = new ButtonType("Add", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(addButtonType, ButtonType.CANCEL);
-        
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20));
-        
-        TextField nameField = new TextField();
-        TextField typeField = new TextField();
-        TextField locationField = new TextField();
-        TextField revenueField = new TextField("0");
-        TextField expensesField = new TextField("0");
-        
-        grid.add(new Label("Business Name:"), 0, 0);
-        grid.add(nameField, 1, 0);
-        grid.add(new Label("Type:"), 0, 1);
-        grid.add(typeField, 1, 1);
-        grid.add(new Label("Location:"), 0, 2);
-        grid.add(locationField, 1, 2);
-        grid.add(new Label("Revenue:"), 0, 3);
-        grid.add(revenueField, 1, 3);
-        grid.add(new Label("Expenses:"), 0, 4);
-        grid.add(expensesField, 1, 4);
-        
-        dialog.getDialogPane().setContent(grid);
-        
-        dialog.setResultConverter(dialogButton -> {
-            if (dialogButton == addButtonType) {
-                try {
-                    return new Business(
-                        nameField.getText(),
-                        typeField.getText(),
-                        locationField.getText(),
-                        Double.parseDouble(revenueField.getText()),
-                        Double.parseDouble(expensesField.getText())
-                    );
-                } catch (NumberFormatException e) {
-                    return null;
-                }
-            }
-            return null;
-        });
-        
-        Optional<Business> result = dialog.showAndWait();
-        result.ifPresent(business -> {
-            businesses.add(business);
-            updateMetrics();
-            updateBusinessChart();
-            updateExpenseChart();
-        });
-    }
-
-    private void editSelectedBusiness() {
-        Business selected = businessTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showAlert("No Selection", "Please select a business to edit.");
-            return;
-        }
-        
-        Dialog<Business> dialog = new Dialog<>();
-        dialog.setTitle("Edit Business");
-        dialog.setHeaderText("Edit business details");
-        
-        ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
-        
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20));
-        
-        TextField nameField = new TextField(selected.getName());
-        TextField typeField = new TextField(selected.getType());
-        TextField locationField = new TextField(selected.getLocation());
-        TextField revenueField = new TextField(String.valueOf(selected.getRevenue()));
-        TextField expensesField = new TextField(String.valueOf(selected.getExpenses()));
-        
-        grid.add(new Label("Business Name:"), 0, 0);
-        grid.add(nameField, 1, 0);
-        grid.add(new Label("Type:"), 0, 1);
-        grid.add(typeField, 1, 1);
-        grid.add(new Label("Location:"), 0, 2);
-        grid.add(locationField, 1, 2);
-        grid.add(new Label("Revenue:"), 0, 3);
-        grid.add(revenueField, 1, 3);
-        grid.add(new Label("Expenses:"), 0, 4);
-        grid.add(expensesField, 1, 4);
-        
-        dialog.getDialogPane().setContent(grid);
-        
-        dialog.setResultConverter(dialogButton -> {
-            if (dialogButton == saveButtonType) {
-                try {
-                    selected.setName(nameField.getText());
-                    selected.setType(typeField.getText());
-                    selected.setLocation(locationField.getText());
-                    selected.setRevenue(Double.parseDouble(revenueField.getText()));
-                    selected.setExpenses(Double.parseDouble(expensesField.getText()));
-                    return selected;
-                } catch (NumberFormatException e) {
-                    return null;
-                }
-            }
-            return null;
-        });
-        
-        Optional<Business> result = dialog.showAndWait();
-        result.ifPresent(business -> {
-            businessTable.refresh();
-            updateMetrics();
-            updateBusinessChart();
-            updateExpenseChart();
-        });
-    }
-
-    private void deleteSelectedBusiness() {
-        Business selected = businessTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showAlert("No Selection", "Please select a business to delete.");
-            return;
-        }
-        
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Confirm Delete");
-        alert.setHeaderText("Delete Business");
-        alert.setContentText("Are you sure you want to delete " + selected.getName() + "?");
-        
-        Optional<ButtonType> result = alert.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            businesses.remove(selected);
-            updateMetrics();
-            updateBusinessChart();
-            updateExpenseChart();
-        }
-    }
-
-    private void showAddTransactionDialog() {
-        if (businesses.isEmpty()) {
-            showAlert("No Businesses", "Please add at least one business first.");
-            return;
-        }
-        
-        Dialog<Transaction> dialog = new Dialog<>();
-        dialog.setTitle("Add Transaction");
-        dialog.setHeaderText("Enter transaction details");
-        
-        ButtonType addButtonType = new ButtonType("Add", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(addButtonType, ButtonType.CANCEL);
-        
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20));
-        
-        DatePicker datePicker = new DatePicker(LocalDate.now());
-        ComboBox<Business> businessCombo = new ComboBox<>(businesses);
-        businessCombo.setValue(businesses.get(0));
-        ComboBox<String> typeCombo = new ComboBox<>(FXCollections.observableArrayList("Revenue", "Expense"));
-        typeCombo.setValue("Revenue");
-        TextField amountField = new TextField();
-        TextField categoryField = new TextField();
-        TextField descField = new TextField();
-        
-        grid.add(new Label("Date:"), 0, 0);
-        grid.add(datePicker, 1, 0);
-        grid.add(new Label("Business:"), 0, 1);
-        grid.add(businessCombo, 1, 1);
-        grid.add(new Label("Type:"), 0, 2);
-        grid.add(typeCombo, 1, 2);
-        grid.add(new Label("Amount:"), 0, 3);
-        grid.add(amountField, 1, 3);
-        grid.add(new Label("Category:"), 0, 4);
-        grid.add(categoryField, 1, 4);
-        grid.add(new Label("Description:"), 0, 5);
-        grid.add(descField, 1, 5);
-        
-        dialog.getDialogPane().setContent(grid);
-        
-        dialog.setResultConverter(dialogButton -> {
-            if (dialogButton == addButtonType) {
-                try {
-                    Business business = businessCombo.getValue();
-                    double amount = Double.parseDouble(amountField.getText());
-                    String type = typeCombo.getValue();
-                    
-                    if (type.equals("Revenue")) {
-                        business.setRevenue(business.getRevenue() + amount);
-                    } else {
-                        business.setExpenses(business.getExpenses() + amount);
-                    }
-                    
-                    return new Transaction(
-                        datePicker.getValue().toString(),
-                        business.getName(),
-                        type,
-                        amount,
-                        categoryField.getText(),
-                        descField.getText()
-                    );
-                } catch (NumberFormatException e) {
-                    return null;
-                }
-            }
-            return null;
-        });
-        
-        Optional<Transaction> result = dialog.showAndWait();
-        result.ifPresent(transaction -> {
-            transactions.add(transaction);
-            businessTable.refresh();
-            updateMetrics();
-            updateBusinessChart();
-            updateExpenseChart();
-        });
-    }
-
-    private void deleteSelectedTransaction() {
-        Transaction selected = transactionTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showAlert("No Selection", "Please select a transaction to delete.");
-            return;
-        }
-        
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Confirm Delete");
-        alert.setHeaderText("Delete Transaction");
-        alert.setContentText("Are you sure you want to delete this transaction?");
-        
-        Optional<ButtonType> result = alert.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            transactions.remove(selected);
-            updateMetrics();
-        }
-    }
-
-    private void updateMetrics() {
-        double totalRevenue = businesses.stream().mapToDouble(Business::getRevenue).sum();
-        double totalExpenses = businesses.stream().mapToDouble(Business::getExpenses).sum();
-        double totalProfit = totalRevenue - totalExpenses;
-        
-        totalRevenueLabel.setText(String.format("$%.2f", totalRevenue));
-        totalExpensesLabel.setText(String.format("$%.2f", totalExpenses));
-        totalProfitLabel.setText(String.format("$%.2f", totalProfit));
-        
-        if (totalProfit >= 0) {
-            totalProfitLabel.setStyle("-fx-text-fill: #27ae60; -fx-font-size: 20px; -fx-font-weight: bold;");
-        } else {
-            totalProfitLabel.setStyle("-fx-text-fill: #e74c3c; -fx-font-size: 20px; -fx-font-weight: bold;");
-        }
-    }
-
-    private void updateBusinessChart() {
+    private static void updateBusinessChart() {
         businessChart.getData().clear();
         XYChart.Series<String, Number> series = new XYChart.Series<>();
         series.setName("Profit");
-        
-        for (Business b : businesses) {
-            series.getData().add(new XYChart.Data<>(b.getName(), b.getProfit()));
+        for (BusinessesTab.Organization o : organization) {
+            series.getData().add(new XYChart.Data<>(o.getName(), o.getRevenueOutput() - o.getExpensesOutput()));
         }
-        
         businessChart.getData().add(series);
     }
 
-    private void updateExpenseChart() {
+    private static void updateExpenseChart() {
         expenseChart.getData().clear();
-        
-        for (Business b : businesses) {
-            if (b.getExpenses() > 0) {
-                PieChart.Data data = new PieChart.Data(b.getName(), b.getExpenses());
+        for (BusinessesTab.Organization o : organization) {
+            if (o.getExpensesOutput() > 0) {
+                PieChart.Data data = new PieChart.Data(o.getName(), o.getExpensesOutput());
                 expenseChart.getData().add(data);
             }
         }
     }
 
-    private String generateReport() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("BUSINESS PERFORMANCE REPORT\n");
-        sb.append("Generated: ").append(LocalDate.now().format(DateTimeFormatter.ISO_DATE)).append("\n");
-        sb.append("=".repeat(60)).append("\n\n");
-        
-        double totalRevenue = 0, totalExpenses = 0;
-        
-        for (Business b : businesses) {
-            sb.append("Business: ").append(b.getName()).append("\n");
-            sb.append("Type: ").append(b.getType()).append("\n");
-            sb.append("Location: ").append(b.getLocation()).append("\n");
-            sb.append(String.format("Revenue: $%.2f\n", b.getRevenue()));
-            sb.append(String.format("Expenses: $%.2f\n", b.getExpenses()));
-            sb.append(String.format("Profit: $%.2f\n", b.getProfit()));
-            sb.append("-".repeat(60)).append("\n\n");
-            
-            totalRevenue += b.getRevenue();
-            totalExpenses += b.getExpenses();
-        }
-        
-        sb.append("OVERALL SUMMARY\n");
-        sb.append(String.format("Total Revenue: $%.2f\n", totalRevenue));
-        sb.append(String.format("Total Expenses: $%.2f\n", totalExpenses));
-        sb.append(String.format("Total Profit: $%.2f\n", totalRevenue - totalExpenses));
-        sb.append(String.format("Profit Margin: %.2f%%\n", 
-            totalRevenue > 0 ? ((totalRevenue - totalExpenses) / totalRevenue * 100) : 0));
-        
-        return sb.toString();
+    private static VBox createGoldPriceSection() {
+        VBox section = new VBox(10);
+        section.setPadding(new Insets(10));
+        section.setStyle("-fx-border-color: #bdc3c7; -fx-border-width: 1; -fx-border-radius: 5; -fx-background-color: #ecf0f1; -fx-background-radius: 5;");
+        Label sectionTitle = new Label("Gold Price Analysis");
+        sectionTitle.setStyle("fx-font-weight: bold;");
+        sectionTitle.setFont(App.header_Font);
+        // Gold price chart
+        NumberAxis xAxis = new NumberAxis();
+        NumberAxis yAxis = new NumberAxis();
+        xAxis.setLabel("Year");
+        yAxis.setLabel("Price per Troy Ounce");
+        yAxis.setAutoRanging(true);
+        xAxis.setAutoRanging(false);
+        goldPriceChart = new LineChart<>(xAxis, yAxis);
+        goldPriceChart.setTitle("Historical & Projected Gold Prices");
+        goldPriceChart.setCreateSymbols(false); // Smoother line without individual data point markers
+        goldPriceChart.setLegendVisible(true);
+        section.getChildren().addAll(sectionTitle, goldPriceChart);
+        // Initial chart population
+        updateGoldPriceChart(BusinessApp.startYear, BusinessApp.endYear);
+        return section;
     }
 
-    private void showAlert(String title, String content) {
+    private static void updateGoldPriceChart(int startYear, int endYear) {
+        if (startYear >= endYear) {
+            showAlert("Invalid Range", "Start year must be less than end year.");
+            return;
+        }
+        List<DataPoint> dataPoints = fetchHistoricalGoldData(startYear, endYear);
+        goldPriceChart.getData().clear();
+        // Separate historical and projected data
+        List<DataPoint> historicalData = new ArrayList<>();
+        List<DataPoint> projectedData = new ArrayList<>();
+        for (DataPoint point : dataPoints) {
+            if (point.year <= BusinessApp.currentYear) {
+                historicalData.add(point);
+            } else {
+                projectedData.add(point);
+            }
+        }
+        goldPriceChart.setCreateSymbols(true);
+        // Create historical series (solid line)
+        if (!historicalData.isEmpty()) {
+            XYChart.Series<Number, Number> historicalSeries = new XYChart.Series<>();
+            historicalSeries.setName(String.format("Historical Price (>%s)", BusinessApp.currentYear));
+            for (DataPoint point : historicalData) {
+                historicalSeries.getData().add(new XYChart.Data<>(point.year, point.price));
+            }
+            goldPriceChart.getData().add(historicalSeries);
+        }
+        // Create projected series (dashed line effect via styling)
+        if (!projectedData.isEmpty()) {
+            XYChart.Series<Number, Number> projectedSeries = new XYChart.Series<>();
+            projectedSeries.setName(String.format("Projected Price (%s)", endYear));
+            // Add last historical point to connect the lines
+            if (!historicalData.isEmpty()) {
+                DataPoint lastHistorical = historicalData.get(historicalData.size() - 1);
+                projectedSeries.getData().add(new XYChart.Data<>(lastHistorical.year, lastHistorical.price));
+            }
+            for (DataPoint point : projectedData) {
+                projectedSeries.getData().add(new XYChart.Data<>(point.year, point.price));
+            }
+            goldPriceChart.getData().add(projectedSeries);
+        }
+        // Update x-axis range
+        NumberAxis xAxis = (NumberAxis) goldPriceChart.getXAxis();
+        xAxis.setLowerBound(startYear);
+        xAxis.setUpperBound(endYear);
+        xAxis.setTickUnit(Math.max(1, (endYear - startYear) / 10));
+    }
+
+    private static List<DataPoint> fetchHistoricalGoldData(int startYear, int endYear) {
+        List<DataPoint> result = new ArrayList<>();
+        for (year = startYear; year <= endYear; year++) {
+            DataPoint existing = goldPriceHistory.stream()
+                    .filter(p -> p.year == year)
+                    .findFirst()
+                    .orElse(null);
+            if (existing == null) {
+                double price = calculateGoldPrice();
+                existing = new DataPoint(year, price);
+                goldPriceHistory.add(existing);
+            }
+            result.add(existing);
+        }
+        return result;
+    }
+
+    private static double calculateGoldPrice() {
+        // Long-term drift (1–3%)
+        double drift = 1.01 + goldRandom.nextDouble() * 0.02;
+        // Volatility (market noise)
+        double shock = goldRandom.nextGaussian() * 0.07;
+        // Momentum (prevents zig-zag chaos)
+        double momentum = (goldRandom.nextDouble() - 0.5) * 0.03;
+        double nextPrice
+                = lastGoldPrice * drift
+                * (1 + shock + momentum);
+        // Mean reversion (keeps it believable)
+        double equilibrium = 1200;
+        nextPrice += (equilibrium - nextPrice) * 0.05;
+        // Safety floor
+        nextPrice = Math.max(nextPrice, 25);
+        lastGoldPrice = nextPrice;
+        return Math.round(nextPrice * 100.0) / 100.0;
+    }
+
+    private static VBox createAstronomicalBuckSection() {
+        VBox section = new VBox(10);
+        section.setPadding(new Insets(10));
+        section.setStyle("-fx-border-color: #bdc3c7; -fx-border-width: 1; -fx-border-radius: 5; -fx-background-color: #ecf0f1; -fx-background-radius: 5;");
+        Label sectionTitle = new Label("Astronomical Bucks Analysis");
+        sectionTitle.setStyle("fx-font-weight: bold;");
+        sectionTitle.setFont(App.header_Font);
+        // Gold price chart
+        NumberAxis xAxis = new NumberAxis();
+        NumberAxis yAxis = new NumberAxis();
+        xAxis.setLabel("Year");
+        yAxis.setLabel("Price per Astronomical Buck");
+        yAxis.setAutoRanging(true);
+        xAxis.setAutoRanging(false);
+        astronomicalBuckPriceChart = new LineChart<>(xAxis, yAxis);
+        astronomicalBuckPriceChart.setTitle("Historical & Projected per Astronomical Buck");
+        astronomicalBuckPriceChart.setCreateSymbols(false); // Smoother line without individual data point markers
+        astronomicalBuckPriceChart.setLegendVisible(true);
+        section.getChildren().addAll(sectionTitle, astronomicalBuckPriceChart);
+        // Initial chart population
+        updateAstronomicalBuckChart(BusinessApp.startYear, BusinessApp.endYear);
+        return section;
+    }
+
+    private static void updateAstronomicalBuckChart(int startYear, int endYear) {
+        if (startYear >= endYear) {
+            showAlert("Invalid Range", "Start year must be less than end year.");
+            return;
+        }
+        List<DataPoint> dataPoints = fetchHistoricalAstronomicalBuckData(startYear, endYear);
+        astronomicalBuckPriceChart.getData().clear();
+        // Separate historical and projected data
+        List<DataPoint> historicalData = new ArrayList<>();
+        List<DataPoint> projectedData = new ArrayList<>();
+        for (DataPoint point : dataPoints) {
+            if (point.year <= BusinessApp.currentYear) {
+                historicalData.add(point);
+            } else {
+                projectedData.add(point);
+            }
+        }
+        astronomicalBuckPriceChart.setCreateSymbols(true);
+        // Create historical series (solid line)
+        if (!historicalData.isEmpty()) {
+            XYChart.Series<Number, Number> historicalSeries = new XYChart.Series<>();
+            historicalSeries.setName(String.format("Historical Price (>%s)", BusinessApp.currentYear));
+            for (DataPoint point : historicalData) {
+                historicalSeries.getData().add(new XYChart.Data<>(point.year, point.price));
+            }
+            astronomicalBuckPriceChart.getData().add(historicalSeries);
+        }
+        // Create projected series (dashed line effect via styling)
+        if (!projectedData.isEmpty()) {
+            XYChart.Series<Number, Number> projectedSeries = new XYChart.Series<>();
+            projectedSeries.setName(String.format("Projected Price (%s)", endYear));
+            // Add last historical point to connect the lines
+            if (!historicalData.isEmpty()) {
+                DataPoint lastHistorical = historicalData.get(historicalData.size() - 1);
+                projectedSeries.getData().add(new XYChart.Data<>(lastHistorical.year, lastHistorical.price));
+            }
+            for (DataPoint point : projectedData) {
+                projectedSeries.getData().add(new XYChart.Data<>(point.year, point.price));
+            }
+            astronomicalBuckPriceChart.getData().add(projectedSeries);
+        }
+        // Update x-axis range
+        NumberAxis xAxis = (NumberAxis) astronomicalBuckPriceChart.getXAxis();
+        xAxis.setLowerBound(startYear);
+        xAxis.setUpperBound(endYear);
+        xAxis.setTickUnit(Math.max(1, (endYear - startYear) / 10));
+    }
+
+    private static List<DataPoint> fetchHistoricalAstronomicalBuckData(int startYear, int endYear) {
+        List<DataPoint> result = new ArrayList<>();
+        for (year = startYear; year <= endYear; year++) {
+            DataPoint existing = astronomicalBuckHistory.stream()
+                    .filter(p -> p.year == year)
+                    .findFirst()
+                    .orElse(null);
+            if (existing == null) {
+                double price = calculateAstronomicalBuckPrice();
+                existing = new DataPoint(year, price);
+                astronomicalBuckHistory.add(existing);
+            }
+            result.add(existing);
+        }
+        return result;
+    }
+
+    private static double calculateAstronomicalBuckPrice() {
+        // Long-term drift (1–3%)
+        double drift = 1.01 + astronomicalBuckRandom.nextDouble() * 0.02;
+        // Volatility (market noise)
+        double shock = astronomicalBuckRandom.nextGaussian() * 0.07;
+        // Momentum (prevents zig-zag chaos)
+        double momentum = (astronomicalBuckRandom.nextDouble() - 0.5) * 0.03;
+        double nextPrice
+                = lastAstronomicalBuckPrice * drift
+                * (1 + shock + momentum);
+        // Mean reversion (keeps it believable)
+        double equilibrium = 1200 * 20;
+        nextPrice += (equilibrium - nextPrice) * 0.05;
+        // Safety floor
+        nextPrice = Math.max(nextPrice, 25);
+        lastAstronomicalBuckPrice = nextPrice;
+        return Math.round(nextPrice * 100.0) / 100.0;
+    }
+
+    private static class DataPoint {
+        final int year;
+        final double price;
+
+        DataPoint(int year, double price) {
+            this.year = year;
+            this.price = price;
+        }
+    }
+
+    private static void showAlert(String title, String content) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(content);
         alert.showAndWait();
-    }
-
-    private void initializeSampleData() {
-        businesses.add(new Business("Tech Solutions Inc", "Technology", "San Francisco", 250000, 120000));
-        businesses.add(new Business("Green Grocers", "Retail", "Portland", 180000, 95000));
-        businesses.add(new Business("Cafe Delight", "Food & Beverage", "Seattle", 95000, 68000));
-        
-        transactions.add(new Transaction("2025-01-01", "Tech Solutions Inc", "Revenue", 50000, "Sales", "Q4 Software Licenses"));
-        transactions.add(new Transaction("2025-01-02", "Green Grocers", "Expense", 15000, "Inventory", "Fresh Produce"));
-        transactions.add(new Transaction("2025-01-03", "Cafe Delight", "Revenue", 12000, "Sales", "Weekly Revenue"));
-    }
-
-    private String getStyles() {
-        return ".table-view { -fx-background-color: white; }" +
-               ".button { -fx-background-color: #3498db; -fx-text-fill: white; -fx-padding: 8 15; }" +
-               ".button:hover { -fx-background-color: #2980b9; }";
-    }
-
-    public static class Business {
-        private final StringProperty name;
-        private final StringProperty type;
-        private final StringProperty location;
-        private final DoubleProperty revenue;
-        private final DoubleProperty expenses;
-        
-        public Business(String name, String type, String location, double revenue, double expenses) {
-            this.name = new SimpleStringProperty(name);
-            this.type = new SimpleStringProperty(type);
-            this.location = new SimpleStringProperty(location);
-            this.revenue = new SimpleDoubleProperty(revenue);
-            this.expenses = new SimpleDoubleProperty(expenses);
-        }
-        
-        public String getName() { return name.get(); }
-        public void setName(String value) { name.set(value); }
-        public StringProperty nameProperty() { return name; }
-        
-        public String getType() { return type.get(); }
-        public void setType(String value) { type.set(value); }
-        public StringProperty typeProperty() { return type; }
-        
-        public String getLocation() { return location.get(); }
-        public void setLocation(String value) { location.set(value); }
-        public StringProperty locationProperty() { return location; }
-        
-        public double getRevenue() { return revenue.get(); }
-        public void setRevenue(double value) { revenue.set(value); }
-        public DoubleProperty revenueProperty() { return revenue; }
-        
-        public double getExpenses() { return expenses.get(); }
-        public void setExpenses(double value) { expenses.set(value); }
-        public DoubleProperty expensesProperty() { return expenses; }
-        
-        public double getProfit() { return getRevenue() - getExpenses(); }
-        
-        @Override
-        public String toString() { return name.get(); }
-    }
-
-    public static class Transaction {
-        private final StringProperty date;
-        private final StringProperty businessName;
-        private final StringProperty type;
-        private final DoubleProperty amount;
-        private final StringProperty category;
-        private final StringProperty description;
-        
-        public Transaction(String date, String businessName, String type, double amount, String category, String description) {
-            this.date = new SimpleStringProperty(date);
-            this.businessName = new SimpleStringProperty(businessName);
-            this.type = new SimpleStringProperty(type);
-            this.amount = new SimpleDoubleProperty(amount);
-            this.category = new SimpleStringProperty(category);
-            this.description = new SimpleStringProperty(description);
-        }
-        
-        public String getDate() { return date.get(); }
-        public StringProperty dateProperty() { return date; }
-        
-        public String getBusinessName() { return businessName.get(); }
-        public StringProperty businessNameProperty() { return businessName; }
-        
-        public String getType() { return type.get(); }
-        public StringProperty typeProperty() { return type; }
-        
-        public double getAmount() { return amount.get(); }
-        public DoubleProperty amountProperty() { return amount; }
-        
-        public String getCategory() { return category.get(); }
-        public StringProperty categoryProperty() { return category; }
-        
-        public String getDescription() { return description.get(); }
-        public StringProperty descriptionProperty() { return description; }
     }
 }

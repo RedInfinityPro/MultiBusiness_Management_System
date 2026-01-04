@@ -1,0 +1,9 @@
+# Ideas
+_ Add a tool to generate manager names; update LargeNumber_RandomGenerator() function and fix Format_Number() function.
+_ Fix astronomical bucks to be worth more than gold consistently.
+_ Add a search bar a filter tool to allow the user to find business that they want.
+_ Add employment configure screen
+
+# Reject
+
+# Added
