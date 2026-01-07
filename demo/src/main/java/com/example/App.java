@@ -23,8 +23,8 @@ public class App extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        BusinessApp businessDashboard = new BusinessApp();
-        mainRoot = businessDashboard.create_BusinessDashboard();
+        BusinessApp businessApp = new BusinessApp();
+        mainRoot = businessApp.create_App();
         primaryScene = new Scene(mainRoot, 900, 600);
         stage.setScene(primaryScene);
         stage.show();

@@ -15,67 +15,35 @@ import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
 public class BusinessApp {
+
     private static Tools tools = new Tools();
-    private VBox totalMoneyLabel;
-    private VBox totalGoldLabel;
-    private VBox totalAstronomicalBucksLabel;
+    private Label goldValueLabel;
+    private Label moneyValueLabel;
+    private Label astronomicalBucksValueLabel;
     private Timeline timeline;
+    private static Integer startYear = 1970;
+    private static Integer currentYear = startYear;
+    private static Integer endYear = currentYear + 5;
     private Label yearLabel;
-    public static Integer startYear = 1970;
-    public static Integer currentYear = startYear;
-    public static Integer endYear = currentYear + 5;
 
     BusinessApp() {
         YearUpdater();
         updateMetricsLabel_timeLine();
     }
 
-    public Parent create_BusinessDashboard() {
-        BorderPane borderPane = new BorderPane();
-        borderPane.setPadding(new Insets(10));
-        VBox headerVBox = createHeader();
-        borderPane.setTop(headerVBox);
-        // Center - Tab pane
-        TabPane tabPane = new TabPane();
-        tabPane.getTabs().addAll(
-                BusinessDashboard.createDashboardTab(),
-                BusinessesTab.createBusinessesTab()
-        );
-        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        borderPane.setCenter(tabPane);
-        return borderPane;
+    public static Integer get_startYear() {
+        return startYear;
     }
 
-    private VBox createHeader() {
-        VBox headerVBox = new VBox(10);
-        headerVBox.setStyle("-fx-background-color: #6792bdff; -fx-padding: 15;");
-        // title
-        HBox titleHBox = new HBox(10);
-        Label businessNameLabel = new Label("Business Name: ");
-        businessNameLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
-        businessNameLabel.setFont(App.title_Font);
-        TextField businessNameField = new TextField();
-        businessNameField.setStyle("-fx-text-fill: black;");
-        businessNameField.setFont(App.title_Font);
-        businessNameField.setPromptText("Business Name...");
-        yearLabel = new Label("Year: " + currentYear);
-        yearLabel.setStyle("-fx-text-fill: white;");
-        yearLabel.setFont(App.title_Font);
-        titleHBox.getChildren().addAll(businessNameLabel, businessNameField, yearLabel);
-        // metrics
-        HBox metricsHBox = new HBox(10);
-        metricsHBox.setAlignment(Pos.CENTER);
-        totalMoneyLabel = createMetricLabel("Total Money: ", "$0");
-        totalGoldLabel = createMetricLabel("Total Gold: ", "$0");
-        totalAstronomicalBucksLabel = createMetricLabel("Total Astronomical Bucks: ", "$0");
-        Button convertButton = new Button("Convert");
-        convertButton.setFont(App.normal_Font);
-        metricsHBox.getChildren().addAll(totalMoneyLabel, totalGoldLabel, totalAstronomicalBucksLabel, convertButton);
-        headerVBox.getChildren().addAll(titleHBox, metricsHBox);
-        return headerVBox;
+    public static Integer get_endYear() {
+        return endYear;
     }
 
-    private void updateMetricsLabel_timeLine () {
+    public static Integer get_currentYear() {
+        return currentYear;
+    }
+
+    private void updateMetricsLabel_timeLine() {
         timeline = new Timeline(
                 new KeyFrame(Duration.millis(1), event -> {
                     updateMetricsLabel();
@@ -86,21 +54,15 @@ public class BusinessApp {
     }
 
     private void updateMetricsLabel() {
-        totalMoneyLabel.getChildren().clear();
-        totalMoneyLabel.getChildren().addAll(
-                new Label("Total Money: "),
-                new Label("$" + String.format("%s", tools.Format_Number(BusinessDashboard.currentMoney)))
-        );
-        totalGoldLabel.getChildren().clear();
-        totalGoldLabel.getChildren().addAll(
-                new Label("Total Gold: "),
-                new Label("$" + String.format("%s", tools.Format_Number(BusinessDashboard.currentGold)))
-        );
-        totalAstronomicalBucksLabel.getChildren().clear();
-        totalAstronomicalBucksLabel.getChildren().addAll(
-                new Label("Total Astronomical Bucks: "),
-                new Label("$" + String.format("%s", tools.Format_Number(BusinessDashboard.currentAstronomicalBucks)))
-        );
+        goldValueLabel.setText("$" + tools.Format_Number(BusinessDashboard.get_currentGold()));
+        goldValueLabel.setStyle("-fx-text-fill: #3498db; -fx-font-weight: bold;");
+        goldValueLabel.setFont(App.header_Font);
+        moneyValueLabel.setText("$" + tools.Format_Number(BusinessDashboard.get_currentMoney()));
+        moneyValueLabel.setStyle("-fx-text-fill: #3498db; -fx-font-weight: bold;");
+        moneyValueLabel.setFont(App.header_Font);
+        astronomicalBucksValueLabel.setText("$" + tools.Format_Number(BusinessDashboard.get_currentAstronomicalBucks()));
+        astronomicalBucksValueLabel.setStyle("-fx-text-fill: #3498db; -fx-font-weight: bold;");
+        astronomicalBucksValueLabel.setFont(App.header_Font);
     }
 
     private void YearUpdater() {
@@ -120,16 +82,67 @@ public class BusinessApp {
         timeline.play();
     }
 
-    private VBox createMetricLabel(String title, String value) {
-        VBox box = new VBox(5);
-        box.setAlignment(Pos.CENTER);
-        Label titleLabel = new Label(title);
-        titleLabel.setStyle("-fx-text-fill: white;");
-        titleLabel.setFont(App.header_Font);
-        Label valueLabel = new Label(value);
-        valueLabel.setStyle("-fx-text-fill: #3498db; -fx-font-weight: bold;");
-        valueLabel.setFont(App.header_Font);
-        box.getChildren().addAll(titleLabel, valueLabel);
-        return box;
+    public Parent create_App() {
+        BorderPane borderPane = new BorderPane();
+        borderPane.setPadding(new Insets(10));
+        VBox headerVBox = create_Header();
+        borderPane.setTop(headerVBox);
+        TabPane tabPane = create_TabPane();
+        borderPane.setCenter(tabPane);
+        return borderPane;
+    }
+
+    private VBox create_Header() {
+        VBox headerVBox = new VBox(10);
+        headerVBox.setStyle("-fx-background-color: #334a5fff; -fx-padding: 15;");
+        // title
+        HBox titleHBox = new HBox(10);
+        Label businessNameLabel = new Label("Business Name: ");
+        businessNameLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
+        businessNameLabel.setFont(App.title_Font);
+        TextField businessNameField = new TextField();
+        businessNameField.setStyle("-fx-text-fill: black;");
+        businessNameField.setFont(App.title_Font);
+        businessNameField.setPromptText("Business Name...");
+        yearLabel = new Label();
+        yearLabel.setStyle("-fx-text-fill: white;");
+        yearLabel.setFont(App.title_Font);
+        titleHBox.getChildren().addAll(businessNameLabel, businessNameField, yearLabel);
+        // metrics
+        HBox metricsHBox = new HBox(10);
+        metricsHBox.setAlignment(Pos.CENTER);
+        VBox GoldVBox = new VBox();
+        Label GoldLabel = new Label("Gold:");
+        GoldLabel.setStyle("-fx-text-fill: white;");
+        GoldLabel.setFont(App.header_Font);
+        goldValueLabel = new Label("");
+        GoldVBox.getChildren().addAll(GoldLabel, goldValueLabel);
+        VBox MoneyVBox = new VBox();
+        Label MoneyLabel = new Label("Money:");
+        MoneyLabel.setStyle("-fx-text-fill: white;");
+        MoneyLabel.setFont(App.header_Font);
+        moneyValueLabel = new Label("");
+        MoneyVBox.getChildren().addAll(MoneyLabel, moneyValueLabel);
+        VBox AstronomicalBucksVBox = new VBox();
+        Label AstronomicalBucksLabel = new Label("Astronomical Bucks:");
+        AstronomicalBucksLabel.setStyle("-fx-text-fill: white;");
+        AstronomicalBucksLabel.setFont(App.header_Font);
+        astronomicalBucksValueLabel = new Label("");
+        AstronomicalBucksVBox.getChildren().addAll(AstronomicalBucksLabel, astronomicalBucksValueLabel);
+        Button convertButton = new Button("Convert");
+        convertButton.setFont(App.normal_Font);
+        metricsHBox.getChildren().addAll(GoldVBox, MoneyVBox, AstronomicalBucksVBox, convertButton);
+        headerVBox.getChildren().addAll(titleHBox, metricsHBox);
+        return headerVBox;
+    }
+
+    private TabPane create_TabPane() {
+        TabPane tabPane = new TabPane();
+        tabPane.getTabs().addAll(
+                BusinessDashboard.create_DashboardTab(),
+                BusinessesTab.create_BusinessesTab()
+        );
+        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        return tabPane;
     }
 }

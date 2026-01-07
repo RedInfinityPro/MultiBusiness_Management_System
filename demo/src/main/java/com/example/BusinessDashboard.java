@@ -24,9 +24,9 @@ public class BusinessDashboard {
     private static int year = 0;
     // money
     private final List<DataPoint> moneyHistory = new ArrayList<>();
-    public static double currentMoney = 10000.0;
-    public static double currentGold = 0.0;
-    public static double currentAstronomicalBucks = 0.0;
+    private static double currentMoney = 1e10;
+    private static double currentGold = 0.0;
+    private static double currentAstronomicalBucks = 0.0;
     private LineChart<Number, Number> moneyPriceChart;
     // gold
     private static final List<DataPoint> goldPriceHistory = new ArrayList<>();
@@ -36,7 +36,7 @@ public class BusinessDashboard {
     // astronomical bucks
     private static final List<DataPoint> astronomicalBuckHistory = new ArrayList<>();
     private static final Random astronomicalBuckRandom = new Random();
-    private static double lastAstronomicalBuckPrice = 10000.0;
+    private static double lastAstronomicalBuckPrice = 420000000;
     private static LineChart<Number, Number> astronomicalBuckPriceChart;
     // businesses and transactions
     private static ObservableList<BusinessesTab.Organization> organization = observableArrayList();
@@ -44,52 +44,8 @@ public class BusinessDashboard {
     private static PieChart expenseChart;
 
     public static void updateAllCharts() {
-        updateGoldPriceChart(BusinessApp.startYear, BusinessApp.endYear);
-        updateAstronomicalBuckChart(BusinessApp.startYear, BusinessApp.endYear);
-    }
-
-    public static void addData(String name, String manager, boolean locked, double organizationValue, double organizationOutputTime, double organizationCurrentTime,double revenueOutput, double expensesOutput, double upgradeCost, double qualityCost) {
-        BusinessesTab.Organization b1 = new BusinessesTab.Organization(name, manager, locked, organizationValue, organizationOutputTime, organizationCurrentTime,revenueOutput, expensesOutput, upgradeCost, qualityCost);
-        organization.add(b1);
-    }
-
-    public static Tab createDashboardTab() {
-        Tab tab = new Tab("Dashboard");
-        VBox content = new VBox(15);
-        content.setPadding(new Insets(15));
-        // Business Summary Section
-        HBox BusinessSection = createBusinessSection();
-        // Gold Price Analysis Section
-        HBox sectionBox = new HBox(15);
-        VBox goldSection = createGoldPriceSection();
-        VBox astronomicalBuckSection = createAstronomicalBuckSection();
-        sectionBox.getChildren().addAll(goldSection, astronomicalBuckSection);
-        // content
-        content.getChildren().addAll(BusinessSection,sectionBox);
-        ScrollPane scroll = new ScrollPane(content);
-        scroll.setFitToWidth(true);
-        tab.setContent(scroll);
-        return tab;
-    }
-
-    private static HBox createBusinessSection() {
-        HBox section = new HBox(10);
-        section.setPadding(new Insets(10));
-        section.setStyle("-fx-border-color: #bdc3c7; -fx-border-width: 1; -fx-border-radius: 5; -fx-background-color: #ecf0f1; -fx-background-radius: 5;");
-        // Business Performance Chart
-        CategoryAxis xAxis = new CategoryAxis();
-        NumberAxis yAxis = new NumberAxis();
-        businessChart = new BarChart<>(xAxis, yAxis);
-        businessChart.setTitle("Business Profit Comparison");
-        businessChart.setPrefHeight(300);
-        // Expense Distribution Chart
-        expenseChart = new PieChart();
-        expenseChart.setTitle("Expense Distribution by Business");
-        expenseChart.setPrefHeight(300);
-        section.getChildren().addAll(businessChart, expenseChart);
-        updateBusinessChart();
-        updateExpenseChart();
-        return section;
+        updateGoldPriceChart(BusinessApp.get_startYear(), BusinessApp.get_endYear());
+        updateAstronomicalBuckChart(BusinessApp.get_startYear(), BusinessApp.get_endYear());
     }
 
     private static void updateBusinessChart() {
@@ -112,30 +68,6 @@ public class BusinessDashboard {
         }
     }
 
-    private static VBox createGoldPriceSection() {
-        VBox section = new VBox(10);
-        section.setPadding(new Insets(10));
-        section.setStyle("-fx-border-color: #bdc3c7; -fx-border-width: 1; -fx-border-radius: 5; -fx-background-color: #ecf0f1; -fx-background-radius: 5;");
-        Label sectionTitle = new Label("Gold Price Analysis");
-        sectionTitle.setStyle("fx-font-weight: bold;");
-        sectionTitle.setFont(App.header_Font);
-        // Gold price chart
-        NumberAxis xAxis = new NumberAxis();
-        NumberAxis yAxis = new NumberAxis();
-        xAxis.setLabel("Year");
-        yAxis.setLabel("Price per Troy Ounce");
-        yAxis.setAutoRanging(true);
-        xAxis.setAutoRanging(false);
-        goldPriceChart = new LineChart<>(xAxis, yAxis);
-        goldPriceChart.setTitle("Historical & Projected Gold Prices");
-        goldPriceChart.setCreateSymbols(false); // Smoother line without individual data point markers
-        goldPriceChart.setLegendVisible(true);
-        section.getChildren().addAll(sectionTitle, goldPriceChart);
-        // Initial chart population
-        updateGoldPriceChart(BusinessApp.startYear, BusinessApp.endYear);
-        return section;
-    }
-
     private static void updateGoldPriceChart(int startYear, int endYear) {
         if (startYear >= endYear) {
             showAlert("Invalid Range", "Start year must be less than end year.");
@@ -147,7 +79,7 @@ public class BusinessDashboard {
         List<DataPoint> historicalData = new ArrayList<>();
         List<DataPoint> projectedData = new ArrayList<>();
         for (DataPoint point : dataPoints) {
-            if (point.year <= BusinessApp.currentYear) {
+            if (point.year <= BusinessApp.get_currentYear()) {
                 historicalData.add(point);
             } else {
                 projectedData.add(point);
@@ -157,7 +89,7 @@ public class BusinessDashboard {
         // Create historical series (solid line)
         if (!historicalData.isEmpty()) {
             XYChart.Series<Number, Number> historicalSeries = new XYChart.Series<>();
-            historicalSeries.setName(String.format("Historical Price (>%s)", BusinessApp.currentYear));
+            historicalSeries.setName(String.format("Historical Price (>%s)", BusinessApp.get_currentYear()));
             for (DataPoint point : historicalData) {
                 historicalSeries.getData().add(new XYChart.Data<>(point.year, point.price));
             }
@@ -182,6 +114,94 @@ public class BusinessDashboard {
         xAxis.setLowerBound(startYear);
         xAxis.setUpperBound(endYear);
         xAxis.setTickUnit(Math.max(1, (endYear - startYear) / 10));
+    }
+
+    public static double get_currentMoney() {
+        return currentMoney;
+    }
+
+    public static void subtract_currentMoney(Double value) {
+        currentMoney -= value;
+    }
+
+    public static void add_currentMoney(Double value) {
+        currentMoney += value;
+    }
+
+    public static double get_currentGold() {
+        return currentGold;
+    }
+
+    public static double get_currentAstronomicalBucks() {
+        return currentAstronomicalBucks;
+    }
+
+    public static void add_implementData(String name, String manager, boolean locked, double organizationValue, double organizationOutputTime, double organizationCurrentTime,double revenueOutput, double expensesOutput, double upgradeCost, double qualityCost) {
+        BusinessesTab.Organization b1 = new BusinessesTab.Organization(name, manager, locked, organizationValue, organizationOutputTime, organizationCurrentTime,revenueOutput, expensesOutput, upgradeCost, qualityCost);
+        organization.add(b1);
+    }
+
+    public static Tab create_DashboardTab() {
+        Tab tab = new Tab("Dashboard");
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(15));
+        // Business Summary Section
+        HBox BusinessSection = create_BusinessSection();
+        // Gold Price Analysis Section
+        HBox sectionBox = new HBox(15);
+        VBox goldSection = create_GoldPriceSection();
+        VBox astronomicalBuckSection = create_AstronomicalBuckSection();
+        sectionBox.getChildren().addAll(goldSection, astronomicalBuckSection);
+        // content
+        content.getChildren().addAll(BusinessSection,sectionBox);
+        ScrollPane scroll = new ScrollPane(content);
+        scroll.setFitToWidth(true);
+        tab.setContent(scroll);
+        return tab;
+    }
+
+    private static HBox create_BusinessSection() {
+        HBox section = new HBox(10);
+        section.setPadding(new Insets(10));
+        section.setStyle("-fx-border-color: #bdc3c7; -fx-border-width: 1; -fx-border-radius: 5; -fx-background-color: #ecf0f1; -fx-background-radius: 5;");
+        // Business Performance Chart
+        CategoryAxis xAxis = new CategoryAxis();
+        NumberAxis yAxis = new NumberAxis();
+        businessChart = new BarChart<>(xAxis, yAxis);
+        businessChart.setTitle("Business Profit Comparison");
+        businessChart.setPrefHeight(300);
+        // Expense Distribution Chart
+        expenseChart = new PieChart();
+        expenseChart.setTitle("Expense Distribution by Business");
+        expenseChart.setPrefHeight(300);
+        section.getChildren().addAll(businessChart, expenseChart);
+        updateBusinessChart();
+        updateExpenseChart();
+        return section;
+    }
+
+    private static VBox create_GoldPriceSection() {
+        VBox section = new VBox(10);
+        section.setPadding(new Insets(10));
+        section.setStyle("-fx-border-color: #bdc3c7; -fx-border-width: 1; -fx-border-radius: 5; -fx-background-color: #ecf0f1; -fx-background-radius: 5;");
+        Label sectionTitle = new Label("Gold Price Analysis");
+        sectionTitle.setStyle("fx-font-weight: bold;");
+        sectionTitle.setFont(App.header_Font);
+        // Gold price chart
+        NumberAxis xAxis = new NumberAxis();
+        NumberAxis yAxis = new NumberAxis();
+        xAxis.setLabel("Year");
+        yAxis.setLabel("Price per Troy Ounce");
+        yAxis.setAutoRanging(true);
+        xAxis.setAutoRanging(false);
+        goldPriceChart = new LineChart<>(xAxis, yAxis);
+        goldPriceChart.setTitle("Historical & Projected Gold Prices");
+        goldPriceChart.setCreateSymbols(false); // Smoother line without individual data point markers
+        goldPriceChart.setLegendVisible(true);
+        section.getChildren().addAll(sectionTitle, goldPriceChart);
+        // Initial chart population
+        updateGoldPriceChart(BusinessApp.get_startYear(), BusinessApp.get_endYear());
+        return section;
     }
 
     private static List<DataPoint> fetchHistoricalGoldData(int startYear, int endYear) {
@@ -220,7 +240,7 @@ public class BusinessDashboard {
         return Math.round(nextPrice * 100.0) / 100.0;
     }
 
-    private static VBox createAstronomicalBuckSection() {
+    private static VBox create_AstronomicalBuckSection() {
         VBox section = new VBox(10);
         section.setPadding(new Insets(10));
         section.setStyle("-fx-border-color: #bdc3c7; -fx-border-width: 1; -fx-border-radius: 5; -fx-background-color: #ecf0f1; -fx-background-radius: 5;");
@@ -240,7 +260,7 @@ public class BusinessDashboard {
         astronomicalBuckPriceChart.setLegendVisible(true);
         section.getChildren().addAll(sectionTitle, astronomicalBuckPriceChart);
         // Initial chart population
-        updateAstronomicalBuckChart(BusinessApp.startYear, BusinessApp.endYear);
+        updateAstronomicalBuckChart(BusinessApp.get_startYear(), BusinessApp.get_endYear());
         return section;
     }
 
@@ -255,7 +275,7 @@ public class BusinessDashboard {
         List<DataPoint> historicalData = new ArrayList<>();
         List<DataPoint> projectedData = new ArrayList<>();
         for (DataPoint point : dataPoints) {
-            if (point.year <= BusinessApp.currentYear) {
+            if (point.year <= BusinessApp.get_currentYear()) {
                 historicalData.add(point);
             } else {
                 projectedData.add(point);
@@ -265,7 +285,7 @@ public class BusinessDashboard {
         // Create historical series (solid line)
         if (!historicalData.isEmpty()) {
             XYChart.Series<Number, Number> historicalSeries = new XYChart.Series<>();
-            historicalSeries.setName(String.format("Historical Price (>%s)", BusinessApp.currentYear));
+            historicalSeries.setName(String.format("Historical Price (>%s)", BusinessApp.get_currentYear()));
             for (DataPoint point : historicalData) {
                 historicalSeries.getData().add(new XYChart.Data<>(point.year, point.price));
             }
